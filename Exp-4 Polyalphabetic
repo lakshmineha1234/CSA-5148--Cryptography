@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+void vigenereCipher(char* plaintext, char* keyword) {
+    int textLen = strlen(plaintext);
+    int keyLen = strlen(keyword);
+    int i, j;
+    for (i = 0; i < keyLen; i++) {
+        keyword[i] = toupper(keyword[i]);
+    }
+    for (i = 0, j = 0; i < textLen; i++) {
+        if (isalpha(plaintext[i])) {
+            char offset = isupper(plaintext[i]) ? 'A' : 'a';
+            plaintext[i] = (plaintext[i] - offset + (keyword[j % keyLen] - 'A')) % 26 + offset;
+            j++;
+        }
+    }
+}
+int main() {
+    char plaintext[100];
+    char keyword[100];
+    printf("Enter the plaintext: ");
+    fgets(plaintext, sizeof(plaintext), stdin);
+    plaintext[strcspn(plaintext, "\n")] = 0; 
+    printf("Enter the keyword: ");
+    fgets(keyword, sizeof(keyword), stdin);
+    keyword[strcspn(keyword, "\n")] = 0; 
+    vigenereCipher(plaintext, keyword);
+    printf("Encrypted string: %s\n", plaintext);
+    return 0;
+}
