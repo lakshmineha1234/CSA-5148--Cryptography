@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// English letter frequencies (A-Z)
+double englishFrequencies[26] = {
+    8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153,
+    0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056,
+    2.758, 0.978, 2.360, 0.150, 1.974, 0.074
+};
+
+void decrypt(const char *ciphertext, int key, char *plaintext) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            plaintext[i] = ((ciphertext[i] - 'a' - key + 26) % 26) + 'a';
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[len] = '\0';
+}
+
+double calculateChiSquared(const int *cipherFreq, int textLength) {
+    double chiSquared = 0.0;
+    for (int i = 0; i < 26; i++) {
+        double expectedFreq = englishFrequencies[i] * textLength / 100.0;
+        double diff = cipherFreq[i] - expectedFreq;
+        chiSquared += diff * diff / expectedFreq;
+    }
+    return chiSquared;
+}
+
+void frequencyAnalysis(const char *ciphertext, double *chiSquaredValues) {
+    int cipherLength = strlen(ciphertext);
+    int cipherFreq[26] = {0};
+
+    for (int i = 0; i < cipherLength; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            cipherFreq[ciphertext[i] - 'a']++;
+        }
+    }
+
+    for (int key = 0; key < 26; key++) {
+        int shiftedFreq[26] = {0};
+        for (int i = 0; i < 26; i++) {
+            shiftedFreq[i] = cipherFreq[(i + key) % 26];
+        }
+        chiSquaredValues[key] = calculateChiSquared(shiftedFreq, cipherLength);
+    }
+}
+
+void getTopDecryptions(const char *ciphertext, int topN) {
+    double chiSquaredValues[26];
+    char plaintext[1000];
+    int keys[26];
+
+    frequencyAnalysis(ciphertext, chiSquaredValues);
+
+    for (int i = 0; i < 26; i++) {
+        keys[i] = i;
+    }
+
+    for (int i = 0; i < 25; i++) {
+        for (int j = i + 1; j < 26; j++) {
+            if (chiSquaredValues[i] > chiSquaredValues[j]) {
+                double tempChi = chiSquaredValues[i];
+                chiSquaredValues[i] = chiSquaredValues[j];
+                chiSquaredValues[j] = tempChi;
+
+                int tempKey = keys[i];
+                keys[i] = keys[j];
+                keys[j] = tempKey;
+            }
+        }
+    }
+
+    for (int i = 0; i < topN && i < 26; i++) {
+        decrypt(ciphertext, keys[i], plaintext);
+        printf("Key: %2d | Chi-Squared: %.2f | Plaintext: %s\n", keys[i], chiSquaredValues[i], plaintext);
+    }
+}
+
+int main() {
+    char ciphertext[1000];
+    int topN;
+
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, sizeof(ciphertext), stdin);
+    ciphertext[strcspn(ciphertext, "\n")] = '\0';
+
+    printf("Enter the number of top possible plaintexts to display: ");
+    scanf("%d", &topN);
+
+    getTopDecryptions(ciphertext, topN);
+
+    return 0;
+}
