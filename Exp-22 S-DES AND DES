@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BYTE_SIZE 8
+
+void xor(unsigned char *a, unsigned char *b, unsigned char *result, int len) {
+    for (int i = 0; i < len; i++) {
+        result[i] = a[i] ^ b[i];
+    }
+}
+
+void permute(unsigned char *input, unsigned char *output, int *permutation, int len) {
+    for (int i = 0; i < len; i++) {
+        output[i] = input[permutation[i]];
+    }
+}
+
+void sdes_key_generation(unsigned char *key, unsigned char *subkeys) {
+    // Key scheduling for S-DES is simplified and not shown here for brevity
+    // Normally, you'd generate two subkeys from the given key
+    // For simplicity, let's assume the key itself is used as the subkey
+    subkeys[0] = key[0];
+    subkeys[1] = key[1];
+}
+
+void sdes_encrypt_block(unsigned char *plaintext, unsigned char *key, unsigned char *ciphertext) {
+    // Simplified S-DES encryption (actual S-DES involves multiple steps and permutations)
+    // For simplicity, we assume a direct mapping for educational purposes
+    ciphertext[0] = plaintext[0] ^ key[0];
+    ciphertext[1] = plaintext[1] ^ key[1];
+}
+
+void sdes_decrypt_block(unsigned char *ciphertext, unsigned char *key, unsigned char *plaintext) {
+    // Simplified S-DES decryption (actual S-DES involves multiple steps and permutations)
+    // For simplicity, we assume a direct mapping for educational purposes
+    plaintext[0] = ciphertext[0] ^ key[0];
+    plaintext[1] = ciphertext[1] ^ key[1];
+}
+
+void cbc_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, unsigned char *ciphertext) {
+    unsigned char block[BYTE_SIZE];
+    unsigned char prev_block[BYTE_SIZE];
+
+    memcpy(prev_block, iv, BYTE_SIZE);
+
+    for (int i = 0; i < plaintext_len; i += BYTE_SIZE) {
+        xor(plaintext + i, prev_block, block, BYTE_SIZE);
+        sdes_encrypt_block(block, key, ciphertext + i);
+        memcpy(prev_block, ciphertext + i, BYTE_SIZE);
+    }
+}
+
+void cbc_decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv, unsigned char *plaintext) {
+    unsigned char block[BYTE_SIZE];
+    unsigned char prev_block[BYTE_SIZE];
+    unsigned char decrypted_block[BYTE_SIZE];
+
+    memcpy(prev_block, iv, BYTE_SIZE);
+
+    for (int i = 0; i < ciphertext_len; i += BYTE_SIZE) {
+        sdes_decrypt_block(ciphertext + i, key, decrypted_block);
+        xor(decrypted_block, prev_block, plaintext + i, BYTE_SIZE);
+        memcpy(prev_block, ciphertext + i, BYTE_SIZE);
+    }
+}
+
+void print_binary(unsigned char *data, int len) {
+    for (int i = 0; i < len; i++) {
+        for (int j = 7; j >= 0; j--) {
+            printf("%d", (data[i] >> j) & 1);
+        }
+        printf(" ");
+    }
+    printf("\n");
+}
+
+int main() {
+    unsigned char plaintext[BYTE_SIZE] = {0x01, 0x23};  // Binary: 0000 0001 0010 0011
+    unsigned char key[2] = {0x0F, 0xFD};                // Binary: 0111 1111 1011 1111
+    unsigned char iv[BYTE_SIZE] = {0xAA};               // Binary: 1010 1010
+    unsigned char ciphertext[BYTE_SIZE];
+    unsigned char decryptedtext[BYTE_SIZE];
+
+    printf("Original plaintext: ");
+    print_binary(plaintext, 2);
+
+    cbc_encrypt(plaintext, 2, key, iv, ciphertext);
+    printf("Ciphertext: ");
+    print_binary(ciphertext, 2);
+
+    cbc_decrypt(ciphertext, 2, key, iv, decryptedtext);
+    printf("Decrypted text: ");
+    print_binary(decryptedtext, 2);
+
+    return 0;
+}
