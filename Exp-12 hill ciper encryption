@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MOD 26
+
+void prepareText(char *plaintext, char *preparedText) {
+    int len = strlen(plaintext);
+    int k = 0;
+
+    for (int i = 0; i < len; i++) {
+        if (plaintext[i] >= 'a' && plaintext[i] <= 'z') {
+            preparedText[k++] = plaintext[i];
+        } else if (plaintext[i] >= 'A' && plaintext[i] <= 'Z') {
+            preparedText[k++] = plaintext[i] + 32;
+        }
+    }
+
+    if (k % 2 != 0) {
+        preparedText[k++] = 'x';
+    }
+
+    preparedText[k] = '\0';
+}
+
+void encryptPair(char a, char b, int key[2][2], char *res) {
+    int x = a - 'a';
+    int y = b - 'a';
+
+    res[0] = ((key[0][0] * x + key[0][1] * y) % MOD) + 'a';
+    res[1] = ((key[1][0] * x + key[1][1] * y) % MOD) + 'a';
+}
+
+void hillEncrypt(char *plaintext, char *ciphertext, int key[2][2]) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i += 2) {
+        encryptPair(plaintext[i], plaintext[i + 1], key, &ciphertext[i]);
+    }
+    ciphertext[len] = '\0';
+}
+
+int main() {
+    char plaintext[] = "meet me at the usual place at ten rather than eight oclock";
+    char preparedText[100] = {0};
+    char ciphertext[100] = {0};
+    int key[2][2] = {{9, 4}, {5, 7}};
+
+    prepareText(plaintext, preparedText);
+    hillEncrypt(preparedText, ciphertext, key);
+
+    printf("Plaintext: %s\n", plaintext);
+    printf("Prepared Text: %s\n", preparedText);
+    printf("Ciphertext: %s\n", ciphertext);
+
+    return 0;
+}
