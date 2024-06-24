@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+// Function to compute (base^exp) % mod
+long long mod_exp(long long base, long long exp, long long mod) {
+    long long result = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1)
+            result = (result * base) % mod;
+        exp = exp >> 1;
+        base = (base * base) % mod;
+    }
+    return result;
+}
+
+int main() {
+    long long q = 23;   // Public prime number
+    long long a = 5;    // Public base (primitive root modulo q)
+
+    // Alice and Bob choose their private keys
+    long long alice_private = 6; // Alice's private key
+    long long bob_private = 15;  // Bob's private key
+
+    // Compute public keys
+    long long alice_public = mod_exp(a, alice_private, q);
+    long long bob_public = mod_exp(a, bob_private, q);
+
+    // Exchange public keys and compute shared secret
+    long long alice_shared_secret = mod_exp(bob_public, alice_private, q);
+    long long bob_shared_secret = mod_exp(alice_public, bob_private, q);
+
+    // Print the results
+    printf("Alice's private key: %lld\n", alice_private);
+    printf("Bob's private key: %lld\n", bob_private);
+    printf("Alice's public key: %lld\n", alice_public);
+    printf("Bob's public key: %lld\n", bob_public);
+    printf("Alice's shared secret: %lld\n", alice_shared_secret);
+    printf("Bob's shared secret: %lld\n", bob_shared_secret);
+
+    if (alice_shared_secret == bob_shared_secret) {
+        printf("Key exchange successful. Shared secret: %lld\n", alice_shared_secret);
+    } else {
+        printf("Key exchange failed.\n");
+    }
+
+    return 0;
+}
