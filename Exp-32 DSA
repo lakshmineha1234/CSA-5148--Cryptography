@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/dsa.h>
+#include <openssl/rsa.h>
+#include <openssl/objects.h>
+
+#define MESSAGE "This is a test message."
+
+void handleErrors(void)
+{
+    fprintf(stderr, "Error occurred.\n");
+    exit(EXIT_FAILURE);
+}
+
+void dsa_signature_test(void)
+{
+    DSA *dsa = NULL;
+    unsigned char hash[SHA_DIGEST_LENGTH];
+    unsigned char signature[DSA_size(dsa)];
+    unsigned int sig_len;
+
+    // Generate DSA key
+    dsa = DSA_generate_parameters(1024, NULL, 0, NULL, NULL, NULL, NULL);
+    if (!dsa || !DSA_generate_key(dsa)) {
+        handleErrors();
+    }
+
+    // Compute SHA-1 hash of the message
+    SHA1((const unsigned char *) MESSAGE, strlen(MESSAGE), hash);
+
+    // Sign the message
+    if (!DSA_sign(0, hash, SHA_DIGEST_LENGTH, signature, &sig_len, dsa)) {
+        handleErrors();
+    }
+
+    // Verify the signature
+    if (DSA_verify(0, hash, SHA_DIGEST_LENGTH, signature, sig_len, dsa) != 1) {
+        handleErrors();
+    }
+
+    printf("DSA Signature:\n");
+    printf("Message: %s\n", MESSAGE);
+    printf("Signature:");
+    for (int i = 0; i < sig_len; i++) {
+        printf("%02x", signature[i]);
+    }
+    printf("\n");
+
+    DSA_free(dsa);
+}
+
+void rsa_signature_test(void)
+{
+    RSA *rsa = NULL;
+    unsigned char hash[SHA_DIGEST_LENGTH];
+    unsigned char signature[RSA_size(rsa)];
+    unsigned int sig_len;
+
+    // Generate RSA key
+    rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
+    if (!rsa) {
+        handleErrors();
+    }
+
+    // Compute SHA-1 hash of the message
+    SHA1((const unsigned char *) MESSAGE, strlen(MESSAGE), hash);
+
+    // Sign the message
+    if (RSA_sign(NID_sha1, hash, SHA_DIGEST_LENGTH, signature, &sig_len, rsa) != 1) {
+        handleErrors();
+    }
+
+    // Verify the signature
+    if (RSA_verify(NID_sha1, hash, SHA_DIGEST_LENGTH, signature, sig_len, rsa) != 1) {
+        handleErrors();
+    }
+
+    printf("\nRSA Signature:\n");
+    printf("Message: %s\n", MESSAGE);
+    printf("Signature:");
+    for (int i = 0; i < sig_len; i++) {
+        printf("%02x", signature[i]);
+    }
+    printf("\n");
+
+    RSA_free(rsa);
+}
+
+int main()
+{
+    printf("DSA and RSA Signature Generation and Verification:\n");
+
+    dsa_signature_test();
+    rsa_signature_test();
+
+    return 0;
+}
+output:-
+DSA and RSA Signature Generation and Verification:
+DSA Signature:
+Message: This is a test message.
+Signature:304602210098f7f83d7f1f3d2f5df46e56c6d41c9b3e6cfeac8321c0b9e1225a5f350b4b2022100f266b9b
