@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/des.h>
+
+// Key for 3DES (24 bytes, 192 bits)
+unsigned char key[24] = "0123456789abcdefghABCDEFGH";
+
+// Initialization vector (IV) for CBC mode
+unsigned char iv[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
+
+// Function to encrypt using 3DES in CBC mode
+void encrypt3DES_CBC(const unsigned char *plaintext, int plaintext_len, unsigned char *ciphertext) {
+    DES_cblock key1, key2, key3;
+    DES_key_schedule ks1, ks2, ks3;
+
+    // Initialize keys
+    memcpy(key1, key, 8);
+    memcpy(key2, key + 8, 8);
+    memcpy(key3, key + 16, 8);
+    DES_set_key_checked(&key1, &ks1);
+    DES_set_key_checked(&key2, &ks2);
+    DES_set_key_checked(&key3, &ks3);
+
+    // Initialize IV
+    DES_cblock iv_temp;
+    memcpy(iv_temp, iv, 8);
+
+    // CBC mode encryption
+    DES_ede3_cbc_encrypt(plaintext, ciphertext, plaintext_len, &ks1, &ks2, &ks3, &iv_temp, DES_ENCRYPT);
+}
+
+int main() {
+    unsigned char plaintext[] = "Hello, this is a secret message.";
+    unsigned char ciphertext[1024];
+    int plaintext_len = strlen((char *)plaintext);
+
+    // Encrypt plaintext
+    encrypt3DES_CBC(plaintext, plaintext_len, ciphertext);
+
+    // Print ciphertext
+    printf("Ciphertext: ");
+    for (int i = 0; i < plaintext_len; ++i) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
