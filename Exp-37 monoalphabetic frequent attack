@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+
+// Function to count the occurrences of each letter in the ciphertext
+void count_letter_frequency(const char *ciphertext, int *frequency) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        char c = toupper(ciphertext[i]);
+        if (isalpha(c)) {
+            frequency[c - 'A']++;
+        }
+    }
+}
+
+// Function to decrypt the ciphertext using a given key
+void decrypt(const char *ciphertext, const char *key, char *plaintext) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            char c = toupper(ciphertext[i]);
+            plaintext[i] = islower(ciphertext[i]) ? tolower(key[c - 'A']) : key[c - 'A'];
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[strlen(ciphertext)] = '\0';
+}
+
+// Function to swap two characters in a string
+void swap(char *a, char *b) {
+    char temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+// Function to generate permutations of a string (used for generating possible keys)
+void permute(char *str, int l, int r, char **permutations) {
+    if (l == r) {
+        strcpy(permutations[*permutations_count], str);
+        (*permutations_count)++;
+    } else {
+        for (int i = l; i <= r; i++) {
+            swap(str + l, str + i);
+            permute(str, l + 1, r, permutations);
+            swap(str + l, str + i);
+        }
+    }
+}
+
+// Function to perform a letter frequency attack on a monoalphabetic substitution cipher
+void letter_frequency_attack(const char *ciphertext, char **possible_plaintexts, int num_plaintexts) {
+    int frequency[ALPHABET_SIZE] = {0};
+    count_letter_frequency(ciphertext, frequency);
+
+    char *key = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    char **permutations = (char **)malloc(ALPHABET_SIZE * sizeof(char *));
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        permutations[i] = (char *)malloc((ALPHABET_SIZE + 1) * sizeof(char));
+    }
+    permutations_count = 0;
+    permute(key, 0, ALPHABET_SIZE - 1, permutations);
+
+    // Calculate likelihood scores for each permutation
+    double scores[ALPHABET_SIZE] = {0};
+    for (int i = 0; i < permutations_count; i++) {
+        char *plaintext = (char *)malloc((strlen(ciphertext) + 1) * sizeof(char));
+        decrypt(ciphertext, permutations[i], plaintext);
+        int plaintext_frequency[ALPHABET_SIZE] = {0};
+        count_letter_frequency(plaintext, plaintext_frequency);
+        double score = 0;
+        for (int j = 0; j < ALPHABET_SIZE; j++) {
+            score += abs(frequency[j] - plaintext_frequency[j]);
+        }
+        scores[i] = score;
+        free(plaintext);
+    }
+
+    // Sort permutations based on likelihood scores
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = 0; j < ALPHABET_SIZE - i - 1; j++) {
+            if (scores[j] > scores[j + 1]) {
+                double temp = scores[j];
+                scores[j] = scores[j + 1];
+                scores[j + 1] = temp;
+                char *temp_str = permutations[j];
+                permutations[j] = permutations[j + 1];
+                permutations[j + 1] = temp_str;
+            }
+        }
+    }
+
+    // Store the top num_plaintexts possible plaintexts
+    for (int i = 0; i < num_plaintexts && i < permutations_count; i++) {
+        possible_plaintexts[i] = strdup(permutations[i]);
+    }
+
+    // Free memory
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        free(permutations[i]);
+    }
+    free(permutations);
+}
+
+int main() {
+    char ciphertext[] = "JVSQVIYVJZNVGFYJYJZINVJZNVGYJNVHJZNVYJLIVKRLJVEJXVGYJNRJFVGV";
+    int num_plaintexts = 10;
+    char *possible_plaintexts[num_plaintexts];
+
+    letter_frequency_attack(ciphertext, possible_plaintexts, num_plaintexts);
+
+    printf("Possible plaintexts in rough order of likelihood:\n");
+    for (int i = 0; i < num_plaintexts && possible_plaintexts[i] != NULL; i++) {
+        printf("%d. %s\n", i + 1, possible_plaintexts[i]);
+        free(possible_plaintexts[i]); // Free allocated memory
+    }
+
+    return 0;
+}
