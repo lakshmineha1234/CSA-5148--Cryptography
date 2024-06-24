@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/des.h>
+
+#define DATA_SIZE 8 // 64 bits = 8 bytes
+
+void handleErrors(void) {
+    fprintf(stderr, "Error occurred.\n");
+    exit(EXIT_FAILURE);
+}
+
+void print_hex(const char *title, const unsigned char *s, int len) {
+    printf("%s: ", title);
+    for (int i = 0; i < len; i++)
+        printf("%02x", s[i]);
+    printf("\n");
+}
+
+void des_encrypt(const unsigned char *plaintext, unsigned char *ciphertext, DES_key_schedule *ks) {
+    DES_ecb_encrypt((const_DES_cblock *) plaintext, (DES_cblock *) ciphertext, ks, DES_ENCRYPT);
+}
+
+void des_decrypt(const unsigned char *ciphertext, unsigned char *plaintext, DES_key_schedule *ks) {
+    DES_ecb_encrypt((const_DES_cblock *) ciphertext, (DES_cblock *) plaintext, ks, DES_DECRYPT);
+}
+
+int main() {
+    // Example key and plaintext
+    unsigned char key[8] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+    unsigned char plaintext[DATA_SIZE] = "12345678"; // 64 bits of plaintext
+    unsigned char ciphertext[DATA_SIZE];
+    unsigned char decryptedtext[DATA_SIZE];
+
+    DES_key_schedule ks;
+
+    // Set the key
+    if (DES_set_key_checked(&key, &ks) != 0) {
+        handleErrors();
+    }
+
+    // Encrypt
+    des_encrypt(plaintext, ciphertext, &ks);
+
+    // Print ciphertext
+    print_hex("Ciphertext", ciphertext, DATA_SIZE);
+
+    // Decrypt
+    des_decrypt(ciphertext, decryptedtext, &ks);
+
+    // Print decrypted text
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    return 0;
+}
+output:-
+Ciphertext: 8f9c692f3e74fdc4
+Decrypted text: 12345678
