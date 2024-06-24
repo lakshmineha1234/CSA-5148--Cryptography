@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
+void handleErrors(void) {
+    ERR_print_errors_fp(stderr);
+    abort();
+}
+
+void pad(unsigned char *in, int inlen, unsigned char *out, int block_size) {
+    int pad_len = block_size - (inlen % block_size);
+    memcpy(out, in, inlen);
+    out[inlen] = 0x80; // 1 bit followed by zero bits
+    memset(out + inlen + 1, 0, pad_len - 1);
+}
+
+void unpad(unsigned char *in, int inlen, unsigned char *out, int *outlen) {
+    int pad_start = inlen - 1;
+    while (in[pad_start] == 0) {
+        pad_start--;
+    }
+    if (in[pad_start] == 0x80) {
+        *outlen = pad_start;
+        memcpy(out, in, *outlen);
+    } else {
+        // Handle error: invalid padding
+        handleErrors();
+    }
+}
+
+void encrypt_decrypt(const unsigned char *plaintext, int plaintext_len, unsigned char *key,
+                     unsigned char *iv, int mode, int encrypt, unsigned char *output, int *output_len) {
+    EVP_CIPHER_CTX *ctx;
+
+    int len;
+
+    if (!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+    const EVP_CIPHER *cipher;
+    switch (mode) {
+        case 1: // ECB
+            cipher = EVP_aes_128_ecb();
+            break;
+        case 2: // CBC
+            cipher = EVP_aes_128_cbc();
+            break;
+        case 3: // CFB
+            cipher = EVP_aes_128_cfb128();
+            break;
+        default:
+            fprintf(stderr, "Invalid mode\n");
+            abort();
+    }
+
+    if (encrypt) {
+        if (1 != EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv))
+            handleErrors();
+
+        if (1 != EVP_EncryptUpdate(ctx, output, &len, plaintext, plaintext_len))
+            handleErrors();
+        *output_len = len;
+
+        if (1 != EVP_EncryptFinal_ex(ctx, output + len, &len))
+            handleErrors();
+        *output_len += len;
+    } else {
+        if (1 != EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv))
+            handleErrors();
+
+        if (1 != EVP_DecryptUpdate(ctx, output, &len, plaintext, plaintext_len))
+            handleErrors();
+        *output_len = len;
+
+        if (1 != EVP_DecryptFinal_ex(ctx, output + len, &len))
+            handleErrors();
+        *output_len += len;
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+int main(void) {
+    unsigned char *key = (unsigned char *)"0123456789012345"; // 128 bit key
+    unsigned char *iv = (unsigned char *)"0123456789012345";  // IV
+
+    unsigned char plaintext[] = "This is a test message for encryption.";
+    int plaintext_len = strlen((char *)plaintext);
+
+    int block_size = 16;
+    unsigned char padded_plaintext[block_size * ((plaintext_len / block_size) + 1)];
+    pad(plaintext, plaintext_len, padded_plaintext, block_size);
+
+    unsigned char ciphertext[128];
+    int ciphertext_len;
+    unsigned char decryptedtext[128];
+    int decryptedtext_len;
+
+    printf("ECB Mode:\n");
+    encrypt_decrypt(padded_plaintext, sizeof(padded_plaintext), key, NULL, 1, 1, ciphertext, &ciphertext_len);
+    encrypt_decrypt(ciphertext, ciphertext_len, key, NULL, 1, 0, decryptedtext, &decryptedtext_len);
+    decryptedtext[decryptedtext_len] = '\0';
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    printf("\nCBC Mode:\n");
+    encrypt_decrypt(padded_plaintext, sizeof(padded_plaintext), key, iv, 2, 1, ciphertext, &ciphertext_len);
+    encrypt_decrypt(ciphertext, ciphertext_len, key, iv, 2, 0, decryptedtext, &decryptedtext_len);
+    decryptedtext[decryptedtext_len] = '\0';
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    printf("\nCFB Mode:\n");
+    encrypt_decrypt(padded_plaintext, sizeof(padded_plaintext), key, iv, 3, 1, ciphertext, &ciphertext_len);
+    encrypt_decrypt(ciphertext, ciphertext_len, key, iv, 3, 0, decryptedtext, &decryptedtext_len);
+    decryptedtext[decryptedtext_len] = '\0';
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    return 0;
+}
