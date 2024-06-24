@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Function to encrypt plaintext using the Vigenère cipher with one-time pad
+void vigenere_one_time_pad_encrypt(char *plaintext, int *key, char *ciphertext) {
+    int plaintext_len = strlen(plaintext);
+    int key_len = strlen(key);
+    int i, j;
+
+    // Encrypt each character in the plaintext
+    for (i = 0; i < plaintext_len; i++) {
+        // Calculate the shift amount based on the current key element
+        int shift = key[i % key_len];
+
+        // Encrypt uppercase letters
+        if (plaintext[i] >= 'A' && plaintext[i] <= 'Z') {
+            ciphertext[i] = 'A' + (plaintext[i] - 'A' + shift) % 26;
+        }
+        // Encrypt lowercase letters
+        else if (plaintext[i] >= 'a' && plaintext[i] <= 'z') {
+            ciphertext[i] = 'a' + (plaintext[i] - 'a' + shift) % 26;
+        }
+        // Keep non-alphabetic characters unchanged
+        else {
+            ciphertext[i] = plaintext[i];
+        }
+    }
+    ciphertext[plaintext_len] = '\0'; // Null-terminate the ciphertext string
+}
+
+int main() {
+    char plaintext[] = "HelloWorld";
+    int key[] = {3, 19, 5}; // Example key: 3 19 5 ...
+    char ciphertext[strlen(plaintext) + 1]; // +1 for null terminator
+
+    // Encrypt the plaintext using the Vigenère cipher with one-time pad
+    vigenere_one_time_pad_encrypt(plaintext, key, ciphertext);
+
+    // Print the encrypted ciphertext
+    printf("Plaintext: %s\n", plaintext);
+    printf("Key: ");
+    for (int i = 0; i < sizeof(key) / sizeof(key[0]); i++) {
+        printf("%d ", key[i]);
+    }
+    printf("\n");
+    printf("Ciphertext: %s\n", ciphertext);
+
+    return 0;
+}
