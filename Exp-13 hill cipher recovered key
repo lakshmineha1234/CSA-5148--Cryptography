@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 26
+
+void encryptPair(char a, char b, int key[2][2], char *res) {
+    int x = a - 'a';
+    int y = b - 'a';
+
+    res[0] = ((key[0][0] * x + key[0][1] * y) % MOD) + 'a';
+    res[1] = ((key[1][0] * x + key[1][1] * y) % MOD) + 'a';
+}
+
+void findKey(int plaintextPairs[2][2], int ciphertextPairs[2][2], int key[2][2]) {
+    // Calculate the determinant of the plaintext matrix
+    int det = (plaintextPairs[0][0] * plaintextPairs[1][1] - plaintextPairs[0][1] * plaintextPairs[1][0]) % MOD;
+    if (det < 0) det += MOD;
+    
+    // Find the modular inverse of the determinant
+    int invDet = -1;
+    for (int i = 0; i < MOD; i++) {
+        if ((det * i) % MOD == 1) {
+            invDet = i;
+            break;
+        }
+    }
+
+    if (invDet == -1) {
+        printf("Modular inverse of determinant does not exist. Can't find key.\n");
+        return;
+    }
+
+    // Find the inverse of the plaintext matrix
+    int inverse[2][2];
+    inverse[0][0] = (plaintextPairs[1][1] * invDet) % MOD;
+    inverse[0][1] = (-plaintextPairs[0][1] * invDet) % MOD;
+    inverse[1][0] = (-plaintextPairs[1][0] * invDet) % MOD;
+    inverse[1][1] = (plaintextPairs[0][0] * invDet) % MOD;
+    
+    if (inverse[0][1] < 0) inverse[0][1] += MOD;
+    if (inverse[1][0] < 0) inverse[1][0] += MOD;
+
+    // Multiply the inverse matrix by the ciphertext matrix to get the key
+    key[0][0] = (inverse[0][0] * ciphertextPairs[0][0] + inverse[0][1] * ciphertextPairs[1][0]) % MOD;
+    key[0][1] = (inverse[0][0] * ciphertextPairs[0][1] + inverse[0][1] * ciphertextPairs[1][1]) % MOD;
+    key[1][0] = (inverse[1][0] * ciphertextPairs[0][0] + inverse[1][1] * ciphertextPairs[1][0]) % MOD;
+    key[1][1] = (inverse[1][0] * ciphertextPairs[0][1] + inverse[1][1] * ciphertextPairs[1][1]) % MOD;
+}
+
+int main() {
+    // Example plaintext-ciphertext pairs
+    char plaintext[4] = {'h', 'i', 'e', 'n'};
+    char ciphertext[4] = {'x', 'w', 't', 'a'};
+
+    int plaintextPairs[2][2] = {
+        {plaintext[0] - 'a', plaintext[1] - 'a'},
+        {plaintext[2] - 'a', plaintext[3] - 'a'}
+    };
+
+    int ciphertextPairs[2][2] = {
+        {ciphertext[0] - 'a', ciphertext[1] - 'a'},
+        {ciphertext[2] - 'a', ciphertext[3] - 'a'}
+    };
+
+    int key[2][2];
+    findKey(plaintextPairs, ciphertextPairs, key);
+
+    printf("Recovered key matrix:\n");
+    printf("%d %d\n", key[0][0], key[0][1]);
+    printf("%d %d\n", key[1][0], key[1][1]);
+
+    return 0;
+}
