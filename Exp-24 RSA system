@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to compute the greatest common divisor (GCD)
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// Extended Euclidean Algorithm to find the multiplicative inverse of e mod phi
+int extended_gcd(int a, int b, int *x, int *y) {
+    if (a == 0) {
+        *x = 0;
+        *y = 1;
+        return b;
+    }
+
+    int x1, y1;
+    int gcd = extended_gcd(b % a, a, &x1, &y1);
+
+    *x = y1 - (b / a) * x1;
+    *y = x1;
+
+    return gcd;
+}
+
+// Function to compute the multiplicative inverse
+int mod_inverse(int e, int phi) {
+    int x, y;
+    int gcd = extended_gcd(e, phi, &x, &y);
+    if (gcd != 1) {
+        printf("Multiplicative inverse doesn't exist\n");
+        exit(1);
+    } else {
+        // Make x positive
+        if (x < 0) x += phi;
+        return x;
+    }
+}
+
+int main() {
+    int e = 31;
+    int n = 3599;
+    int p, q;
+
+    // Step 1: Factorize n to find p and q
+    for (p = 2; p < n; p++) {
+        if (n % p == 0) {
+            q = n / p;
+            if (p * q == n) break;
+        }
+    }
+
+    if (p * q != n) {
+        printf("Failed to factorize n\n");
+        return 1;
+    }
+
+    printf("p = %d, q = %d\n", p, q);
+
+    // Step 2: Calculate phi(n)
+    int phi = (p - 1) * (q - 1);
+    printf("phi(n) = %d\n", phi);
+
+    // Step 3: Find the multiplicative inverse of e mod phi
+    int d = mod_inverse(e, phi);
+    printf("Private key d = %d\n", d);
+
+    return 0;
+}
