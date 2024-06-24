@@ -1,0 +1,82 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BYTE_SIZE 8
+#define BLOCK_SIZE 2  // S-DES block size is 2 bytes (16 bits)
+
+void xor(unsigned char *a, unsigned char *b, unsigned char *result, int len) {
+    for (int i = 0; i < len; i++) {
+        result[i] = a[i] ^ b[i];
+    }
+}
+
+void increment_counter(unsigned char *counter, int len) {
+    for (int i = len - 1; i >= 0; i--) {
+        if (++counter[i]) break;
+    }
+}
+
+void sdes_encrypt_block(unsigned char *plaintext, unsigned char *key, unsigned char *ciphertext) {
+    // Simplified S-DES encryption (actual S-DES involves multiple steps and permutations)
+    // For simplicity, we assume a direct mapping for educational purposes
+    ciphertext[0] = plaintext[0] ^ key[0];
+    ciphertext[1] = plaintext[1] ^ key[1];
+}
+
+void sdes_decrypt_block(unsigned char *ciphertext, unsigned char *key, unsigned char *plaintext) {
+    // Simplified S-DES decryption (actual S-DES involves multiple steps and permutations)
+    // For simplicity, we assume a direct mapping for educational purposes
+    plaintext[0] = ciphertext[0] ^ key[0];
+    plaintext[1] = ciphertext[1] ^ key[1];
+}
+
+void ctr_encrypt_decrypt(unsigned char *input, int input_len, unsigned char *key, unsigned char *counter, unsigned char *output) {
+    unsigned char counter_block[BLOCK_SIZE];
+    unsigned char keystream_block[BLOCK_SIZE];
+
+    for (int i = 0; i < input_len; i += BLOCK_SIZE) {
+        memcpy(counter_block, counter, BLOCK_SIZE);
+        sdes_encrypt_block(counter_block, key, keystream_block);
+
+        int block_size = (i + BLOCK_SIZE <= input_len) ? BLOCK_SIZE : input_len - i;
+        xor(input + i, keystream_block, output + i, block_size);
+
+        increment_counter(counter, BLOCK_SIZE);
+    }
+}
+
+void print_binary(unsigned char *data, int len) {
+    for (int i = 0; i < len; i++) {
+        for (int j = 7; j >= 0; j--) {
+            printf("%d", (data[i] >> j) & 1);
+        }
+        printf(" ");
+    }
+    printf("\n");
+}
+
+int main() {
+    unsigned char plaintext[] = {0x01, 0x02, 0x04};  // Binary: 0000 0001 0000 0010 0000 0100
+    unsigned char key[2] = {0x0F, 0xFD};             // Binary: 0111 1111 1011 1111
+    unsigned char counter[BLOCK_SIZE] = {0x00, 0x00}; // Counter starting at 0000 0000
+    unsigned char ciphertext[sizeof(plaintext)];
+    unsigned char decryptedtext[sizeof(plaintext)];
+
+    printf("Original plaintext: ");
+    print_binary(plaintext, sizeof(plaintext));
+
+    ctr_encrypt_decrypt(plaintext, sizeof(plaintext), key, counter, ciphertext);
+    printf("Ciphertext: ");
+    print_binary(ciphertext, sizeof(ciphertext));
+
+    // Reset the counter for decryption
+    counter[0] = 0x00;
+    counter[1] = 0x00;
+
+    ctr_encrypt_decrypt(ciphertext, sizeof(ciphertext), key, counter, decryptedtext);
+    printf("Decrypted text: ");
+    print_binary(decryptedtext, sizeof(decryptedtext));
+
+    return 0;
+}
