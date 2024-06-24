@@ -1,0 +1,104 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define SIZE 5
+
+char matrix[SIZE][SIZE] = {
+    {'M', 'F', 'H', 'I', 'K'},
+    {'U', 'N', 'O', 'P', 'Q'},
+    {'Z', 'V', 'W', 'X', 'Y'},
+    {'E', 'L', 'A', 'R', 'G'},
+    {'D', 'S', 'T', 'B', 'C'}
+};
+
+void toUpperAndReplaceJ(char *str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = toupper(str[i]);
+        if (str[i] == 'J') {
+            str[i] = 'I';
+        }
+    }
+}
+
+void prepareText(char *plaintext, char *preparedText) {
+    int len = strlen(plaintext);
+    int k = 0;
+
+    for (int i = 0; i < len; i++) {
+        if (isalpha(plaintext[i])) {
+            preparedText[k++] = plaintext[i];
+        }
+    }
+    preparedText[k] = '\0';
+
+    len = strlen(preparedText);
+    for (int i = 0; i < len; i += 2) {
+        if (preparedText[i] == preparedText[i + 1]) {
+            for (int j = len; j > i + 1; j--) {
+                preparedText[j] = preparedText[j - 1];
+            }
+            preparedText[i + 1] = 'X';
+            len++;
+        }
+    }
+
+    if (len % 2 != 0) {
+        preparedText[len++] = 'X';
+        preparedText[len] = '\0';
+    }
+}
+
+void findPosition(char letter, int *row, int *col) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (matrix[i][j] == letter) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+void encryptPair(char a, char b, char *res) {
+    int row1, col1, row2, col2;
+
+    findPosition(a, &row1, &col1);
+    findPosition(b, &row2, &col2);
+
+    if (row1 == row2) {
+        res[0] = matrix[row1][(col1 + 1) % SIZE];
+        res[1] = matrix[row2][(col2 + 1) % SIZE];
+    } else if (col1 == col2) {
+        res[0] = matrix[(row1 + 1) % SIZE][col1];
+        res[1] = matrix[(row2 + 1) % SIZE][col2];
+    } else {
+        res[0] = matrix[row1][col2];
+        res[1] = matrix[row2][col1];
+    }
+}
+
+void playfairEncrypt(char *plaintext, char *ciphertext) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i += 2) {
+        encryptPair(plaintext[i], plaintext[i + 1], &ciphertext[i]);
+    }
+    ciphertext[len] = '\0';
+}
+
+int main() {
+    char plaintext[] = "Must see you over Cadogan West. Coming at once";
+    char preparedText[100] = {0};
+    char ciphertext[100] = {0};
+
+    toUpperAndReplaceJ(plaintext);
+    prepareText(plaintext, preparedText);
+    playfairEncrypt(preparedText, ciphertext);
+
+    printf("Plaintext: %s\n", plaintext);
+    printf("Prepared Text: %s\n", preparedText);
+    printf("Ciphertext: %s\n", ciphertext);
+
+    return 0;
+}
