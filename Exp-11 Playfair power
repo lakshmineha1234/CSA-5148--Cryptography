@@ -1,0 +1,18 @@
+#include <stdio.h>
+#include <math.h>
+double log2_factorial(int n) {
+    double result = 0.0;
+    for (int i = 1; i <= n; i++) {
+        result += log2(i);
+    }
+    return result;
+}
+int main() {
+    int n = 25;
+    double log2_25_factorial = log2_factorial(n);
+    int power_of_2 = (int)log2_25_factorial;
+
+    printf("Number of possible keys for the Playfair cipher: approximately 2^%d\n", power_of_2);
+
+    return 0;
+}
