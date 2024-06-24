@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+// Function to compute (base^exp) % mod
+int mod_exp(int base, int exp, int mod) {
+    int result = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1)
+            result = (result * base) % mod;
+        exp = exp >> 1;
+        base = (base * base) % mod;
+    }
+    return result;
+}
+
+// RSA encryption
+int rsa_encrypt(int plaintext, int e, int n) {
+    return mod_exp(plaintext, e, n);
+}
+
+// RSA decryption
+int rsa_decrypt(int ciphertext, int d, int n) {
+    return mod_exp(ciphertext, d, n);
+}
+
+int main() {
+    // RSA parameters (using small values for simplicity)
+    int p = 61, q = 53;  // Two prime numbers
+    int n = p * q;       // n = pq
+    int phi = (p - 1) * (q - 1); // φ(n) = (p-1)(q-1)
+    int e = 17;          // Public key exponent (must be coprime with φ(n))
+    int d = 2753;        // Private key exponent (calculated using the Extended Euclidean Algorithm)
+
+    // Example message (HELLO) represented as integers between 0 and 25
+    char message[] = "HELLO";
+    int message_len = sizeof(message) - 1;
+    int plaintext[message_len];
+    int ciphertext[message_len];
+    int decryptedtext[message_len];
+
+    // Convert message to integer representation
+    for (int i = 0; i < message_len; i++) {
+        plaintext[i] = message[i] - 'A';
+    }
+
+    // Encrypt each integer separately
+    for (int i = 0; i < message_len; i++) {
+        ciphertext[i] = rsa_encrypt(plaintext[i], e, n);
+    }
+
+    // Decrypt each integer separately
+    for (int i = 0; i < message_len; i++) {
+        decryptedtext[i] = rsa_decrypt(ciphertext[i], d, n);
+    }
+
+    // Convert decrypted integers back to characters
+    char decrypted_message[message_len + 1];
+    for (int i = 0; i < message_len; i++) {
+        decrypted_message[i] = decryptedtext[i] + 'A';
+    }
+    decrypted_message[message_len] = '\0';
+
+    // Print results
+    printf("Original message: %s\n", message);
+    printf("Encrypted message: ");
+    for (int i = 0; i < message_len; i++) {
+        printf("%d ", ciphertext[i]);
+    }
+    printf("\n");
+    printf("Decrypted message: %s\n", decrypted_message);
+
+    return 0;
+}
