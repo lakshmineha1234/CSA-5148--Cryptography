@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+#define NUM_PLAINTEXTS 10
+
+// English letter frequency in percent
+const float english_letter_frequency[ALPHABET_SIZE] = {
+    8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153,
+    0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056,
+    2.758, 0.978, 2.360, 0.150, 1.974, 0.074
+};
+
+// Function to calculate letter frequency of a string
+void calculate_letter_frequency(const char *text, float *frequency) {
+    int total = 0;
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = toupper(text[i]);
+        if (isalpha(c)) {
+            frequency[c - 'A']++;
+            total++;
+        }
+    }
+    // Convert frequencies to percentages
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        frequency[i] = (frequency[i] / total) * 100.0;
+    }
+}
+
+// Function to sort the plaintexts by the likelihood of being correct
+void sort_plaintexts(float *plaintext_scores, char **possible_plaintexts) {
+    for (int i = 0; i < NUM_PLAINTEXTS - 1; i++) {
+        for (int j = i + 1; j < NUM_PLAINTEXTS; j++) {
+            if (plaintext_scores[j] > plaintext_scores[i]) {
+                // Swap scores
+                float temp_score = plaintext_scores[i];
+                plaintext_scores[i] = plaintext_scores[j];
+                plaintext_scores[j] = temp_score;
+                // Swap plaintexts
+                char *temp_plaintext = possible_plaintexts[i];
+                possible_plaintexts[i] = possible_plaintexts[j];
+                possible_plaintexts[j] = temp_plaintext;
+            }
+        }
+    }
+}
+
+// Function to perform letter frequency attack on a monoalphabetic substitution cipher
+void letter_frequency_attack(const char *ciphertext, char **possible_plaintexts) {
+    float frequency[ALPHABET_SIZE] = {0};
+    calculate_letter_frequency(ciphertext, frequency);
+
+    // Create a mapping array to store plaintext possibilities
+    char *mapping[ALPHABET_SIZE];
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        mapping[i] = (char *)malloc((strlen(ciphertext) + 1) * sizeof(char));
+        if (!mapping[i]) {
+            perror("Memory allocation failed");
+            exit(EXIT_FAILURE);
+        }
+        for (int j = 0; ciphertext[j] != '\0'; j++) {
+            char c = ciphertext[j];
+            if (isalpha(c)) {
+                char decrypted_char = 'A' + (c - 'A' - i + ALPHABET_SIZE) % ALPHABET_SIZE;
+                mapping[i][j] = decrypted_char;
+            } else {
+                mapping[i][j] = c;
+            }
+        }
+        mapping[i][strlen(ciphertext)] = '\0';
+    }
+
+    // Calculate scores for each possible plaintext
+    float plaintext_scores[NUM_PLAINTEXTS] = {0};
+    for (int i = 0; i < NUM_PLAINTEXTS; i++) {
+        calculate_letter_frequency(mapping[i], frequency);
+        for (int j = 0; j < ALPHABET_SIZE; j++) {
+            plaintext_scores[i] += fabs(frequency[j] - english_letter_frequency[j]);
+        }
+    }
+
+    // Sort plaintexts by their score
+    sort_plaintexts(plaintext_scores, possible_plaintexts);
+
+    // Free memory allocated for mapping
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        free(mapping[i]);
+    }
+}
+
+int main() {
+    char ciphertext[] = "VSRQJEGGRCKH"; // Example ciphertext
+    char *possible_plaintexts[NUM_PLAINTEXTS];
+
+    letter_frequency_attack(ciphertext, possible_plaintexts);
+
+    printf("Top %d possible plaintexts in rough order of likelihood:\n", NUM_PLAINTEXTS);
+    for (int i = 0; i < NUM_PLAINTEXTS; i++) {
+        printf("%d. %s\n", i + 1, possible_plaintexts[i]);
+        free(possible_plaintexts[i]); // Free allocated memory
+    }
+
+    return 0;
+}
