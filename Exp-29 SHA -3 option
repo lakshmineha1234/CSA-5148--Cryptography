@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+// SHA-3 state parameters
+#define STATE_SIZE 1600
+#define LANE_SIZE 64
+#define NUM_LANES 25
+#define CAPACITY_BITS 576
+#define RATE_BITS 1024
+#define NUM_ZERO_LANES (CAPACITY_BITS / LANE_SIZE)
+
+void initialize_state(uint64_t state[NUM_LANES]) {
+    for (int i = 0; i < NUM_LANES; i++) {
+        state[i] = 0;
+    }
+}
+
+void absorb_block(uint64_t state[NUM_LANES], uint64_t block[NUM_LANES]) {
+    for (int i = 0; i < NUM_LANES; i++) {
+        state[i] ^= block[i];
+    }
+}
+
+bool all_capacity_lanes_nonzero(uint64_t state[NUM_LANES]) {
+    for (int i = NUM_LANES - NUM_ZERO_LANES; i < NUM_LANES; i++) {
+        if (state[i] == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    // State initialization
+    uint64_t state[NUM_LANES];
+    initialize_state(state);
+
+    // Input block initialization (P0), ensuring each lane has at least one nonzero bit
+    uint64_t P0[NUM_LANES];
+    for (int i = 0; i < NUM_LANES; i++) {
+        P0[i] = 0x1ULL << i;  // Simple example, each lane has a different bit set
+    }
+
+    // Absorb the block into the state
+    absorb_block(state, P0);
+
+    // Track the time to achieve all non-zero capacity lanes
+    int steps = 1;  // We have already processed the first block (P0)
+
+    while (!all_capacity_lanes_nonzero(state)) {
+        // Absorb the same block again (or different blocks can be used in practice)
+        absorb_block(state, P0);
+        steps++;
+    }
+
+    printf("It took %d steps for all capacity lanes to have at least one nonzero bit.\n", steps);
+
+    return 0;
+}
