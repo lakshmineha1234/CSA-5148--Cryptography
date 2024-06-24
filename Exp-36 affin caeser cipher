@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to compute the greatest common divisor of two integers a and b
+int gcd(int a, int b) {
+    int temp;
+    while (b != 0) {
+        temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// Function to find the modular multiplicative inverse of a modulo m using extended Euclidean algorithm
+// Returns -1 if the inverse does not exist
+int mod_inverse(int a, int m) {
+    int m0 = m;
+    int y = 0, x = 1;
+
+    if (m == 1)
+        return 0;
+
+    while (a > 1) {
+        int q = a / m;
+        int t = m;
+
+        m = a % m;
+        a = t;
+        t = y;
+
+        y = x - q * y;
+        x = t;
+    }
+
+    if (x < 0)
+        x += m0;
+
+    return x;
+}
+
+// Function to encrypt plaintext using affine Caesar cipher
+char encrypt(int a, int b, char plaintext) {
+    if (plaintext >= 'A' && plaintext <= 'Z') {
+        return 'A' + (a * (plaintext - 'A') + b) % 26;
+    } else if (plaintext >= 'a' && plaintext <= 'z') {
+        return 'a' + (a * (plaintext - 'a') + b) % 26;
+    } else {
+        return plaintext;
+    }
+}
+
+// Function to decrypt ciphertext using affine Caesar cipher
+char decrypt(int a, int b, char ciphertext) {
+    int a_inv = mod_inverse(a, 26);
+
+    if (a_inv == -1) {
+        fprintf(stderr, "Modular inverse does not exist.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (ciphertext >= 'A' && ciphertext <= 'Z') {
+        return 'A' + (a_inv * (ciphertext - 'A' - b + 26)) % 26;
+    } else if (ciphertext >= 'a' && ciphertext <= 'z') {
+        return 'a' + (a_inv * (ciphertext - 'a' - b + 26)) % 26;
+    } else {
+        return ciphertext;
+    }
+}
+
+int main() {
+    int a = 5; // Choose a, should be coprime with 26 (gcd(a, 26) = 1)
+    int b = 8; // Choose b
+    char plaintext[] = "Hello, World!";
+    char ciphertext[100];
+    char decryptedtext[100];
+
+    printf("Original message: %s\n", plaintext);
+
+    // Encrypt the plaintext
+    for (int i = 0; plaintext[i] != '\0'; i++) {
+        ciphertext[i] = encrypt(a, b, plaintext[i]);
+    }
+    ciphertext[strlen(plaintext)] = '\0';
+
+    printf("Encrypted message: %s\n", ciphertext);
+
+    // Decrypt the ciphertext
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        decryptedtext[i] = decrypt(a, b, ciphertext[i]);
+    }
+    decryptedtext[strlen(ciphertext)] = '\0';
+
+    printf("Decrypted message: %s\n", decryptedtext);
+
+    return 0;
+}
