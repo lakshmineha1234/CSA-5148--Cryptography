@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/des.h>
+
+#define DATA_SIZE 16 // 128 bits = 16 bytes (for 8-byte plaintext in 64-bit mode, change to 8)
+
+void handleErrors(void) {
+    fprintf(stderr, "Error occurred.\n");
+    exit(EXIT_FAILURE);
+}
+
+void print_hex(const char *title, const unsigned char *s, int len) {
+    printf("%s: ", title);
+    for (int i = 0; i < len; i++)
+        printf("%02x", s[i]);
+    printf("\n");
+}
+
+void des_encrypt_ecb(const unsigned char *plaintext, unsigned char *ciphertext, DES_key_schedule *ks) {
+    DES_ecb_encrypt((const_DES_cblock *) plaintext, (DES_cblock *) ciphertext, ks, DES_ENCRYPT);
+}
+
+void des_decrypt_ecb(const unsigned char *ciphertext, unsigned char *plaintext, DES_key_schedule *ks) {
+    DES_ecb_encrypt((const_DES_cblock *) ciphertext, (DES_cblock *) plaintext, ks, DES_DECRYPT);
+}
+
+void des_encrypt_cbc(const unsigned char *plaintext, unsigned char *ciphertext, DES_key_schedule *ks, const_DES_cblock *iv) {
+    DES_cbc_encrypt(plaintext, ciphertext, DATA_SIZE, ks, iv, DES_ENCRYPT);
+}
+
+void des_decrypt_cbc(const unsigned char *ciphertext, unsigned char *plaintext, DES_key_schedule *ks, const_DES_cblock *iv) {
+    DES_cbc_encrypt(ciphertext, plaintext, DATA_SIZE, ks, iv, DES_DECRYPT);
+}
+
+void des_encrypt_cfb(const unsigned char *plaintext, unsigned char *ciphertext, DES_key_schedule *ks, const_DES_cblock *iv) {
+    DES_cfb_encrypt(plaintext, ciphertext, 1, DATA_SIZE, ks, iv, DES_ENCRYPT);
+}
+
+void des_decrypt_cfb(const unsigned char *ciphertext, unsigned char *plaintext, DES_key_schedule *ks, const_DES_cblock *iv) {
+    DES_cfb_encrypt(ciphertext, plaintext, 1, DATA_SIZE, ks, iv, DES_DECRYPT);
+}
+
+int main() {
+    // Example key and plaintext
+    unsigned char key[8] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+    unsigned char plaintext[DATA_SIZE] = "1234567890123456"; // 128 bits of plaintext
+    unsigned char ciphertext_ecb[DATA_SIZE];
+    unsigned char decryptedtext_ecb[DATA_SIZE];
+    unsigned char ciphertext_cbc[DATA_SIZE];
+    unsigned char decryptedtext_cbc[DATA_SIZE];
+    unsigned char ciphertext_cfb[DATA_SIZE];
+    unsigned char decryptedtext_cfb[DATA_SIZE];
+    DES_key_schedule ks;
+    const_DES_cblock iv = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}; // Initialization vector for CBC mode
+
+    // Set the key
+    if (DES_set_key_checked(&key, &ks) != 0) {
+        handleErrors();
+    }
+
+    // Encrypt using ECB mode
+    des_encrypt_ecb(plaintext, ciphertext_ecb, &ks);
+
+    // Print ECB ciphertext
+    print_hex("ECB Ciphertext", ciphertext_ecb, DATA_SIZE);
+
+    // Decrypt using ECB mode
+    des_decrypt_ecb(ciphertext_ecb, decryptedtext_ecb, &ks);
+
+    // Print ECB decrypted text
+    printf("ECB Decrypted text: %s\n", decryptedtext_ecb);
+
+    // Encrypt using CBC mode
+    des_encrypt_cbc(plaintext, ciphertext_cbc, &ks, &iv);
+
+    // Print CBC ciphertext
+    print_hex("CBC Ciphertext", ciphertext_cbc, DATA_SIZE);
+
+    // Decrypt using CBC mode
+    des_decrypt_cbc(ciphertext_cbc, decryptedtext_cbc, &ks, &iv);
+
+    // Print CBC decrypted text
+    printf("CBC Decrypted text: %s\n", decryptedtext_cbc);
+
+    // Encrypt using CFB mode
+    des_encrypt_cfb(plaintext, ciphertext_cfb, &ks, &iv);
+
+    // Print CFB ciphertext
+    print_hex("CFB Ciphertext", ciphertext_cfb, DATA_SIZE);
+
+    // Decrypt using CFB mode
+    des_decrypt_cfb(ciphertext_cfb, decryptedtext_cfb, &ks, &iv);
+
+    // Print CFB decrypted text
+    printf("CFB Decrypted text: %s\n", decryptedtext_cfb);
+
+    return 0;
+}
