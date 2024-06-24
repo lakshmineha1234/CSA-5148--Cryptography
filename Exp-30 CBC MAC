@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+// AES block size in bytes
+#define BLOCK_SIZE 16
+
+// Mock AES encryption function (for demonstration purposes)
+void AES_encrypt(const uint8_t *input, const uint8_t *key, uint8_t *output) {
+    // For simplicity, just copying input to output (this is NOT real encryption)
+    memcpy(output, input, BLOCK_SIZE);
+}
+
+// XOR function for two blocks of data
+void xor_blocks(const uint8_t *block1, const uint8_t *block2, uint8_t *output) {
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        output[i] = block1[i] ^ block2[i];
+    }
+}
+
+// CBC-MAC computation for a single block
+void CBC_MAC_single_block(const uint8_t *key, const uint8_t *block, uint8_t *mac) {
+    AES_encrypt(block, key, mac);
+}
+
+// CBC-MAC computation for two blocks
+void CBC_MAC_two_blocks(const uint8_t *key, const uint8_t *block1, const uint8_t *block2, uint8_t *mac) {
+    uint8_t temp[BLOCK_SIZE];
+    AES_encrypt(block1, key, temp);
+    xor_blocks(block2, temp, temp);
+    AES_encrypt(temp, key, mac);
+}
+
+int main() {
+    // Example key and one-block message X
+    uint8_t key[BLOCK_SIZE] = {0x00};  // Example key (all zeros)
+    uint8_t X[BLOCK_SIZE] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+                             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10}; // Example message
+
+    uint8_t T[BLOCK_SIZE];  // MAC for the one-block message
+    uint8_t X_xor_T[BLOCK_SIZE]; // X ⊕ T
+    uint8_t two_block_mac[BLOCK_SIZE]; // MAC for the two-block message
+
+    // Compute CBC-MAC for the one-block message X
+    CBC_MAC_single_block(key, X, T);
+
+    printf("MAC for one-block message X: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02x ", T[i]);
+    }
+    printf("\n");
+
+    // Compute X ⊕ T
+    xor_blocks(X, T, X_xor_T);
+
+    printf("X ⊕ T: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02x ", X_xor_T[i]);
+    }
+    printf("\n");
+
+    // Compute CBC-MAC for the two-block message X || (X ⊕ T)
+    CBC_MAC_two_blocks(key, X, X_xor_T, two_block_mac);
+
+    printf("MAC for two-block message X || (X ⊕ T): ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02x ", two_block_mac[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
