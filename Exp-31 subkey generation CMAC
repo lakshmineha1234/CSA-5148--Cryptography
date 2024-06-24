@@ -1,0 +1,91 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define BLOCK_SIZE_64 8   // 64 bits / 8 bits per byte = 8 bytes
+#define BLOCK_SIZE_128 16 // 128 bits / 8 bits per byte = 16 bytes
+
+// Function to perform left shift on a block
+void left_shift_block(uint8_t *block, size_t block_size) {
+    int i;
+    uint8_t carry = 0;
+    for (i = 0; i < block_size; i++) {
+        uint8_t next_carry = block[i] >> 7;
+        block[i] = (block[i] << 1) | carry;
+        carry = next_carry;
+    }
+}
+
+// Function to conditionally XOR with a constant
+void xor_with_constant(uint8_t *block, size_t block_size, uint8_t constant) {
+    if (block[0] & 0x80) {
+        block[block_size - 1] ^= constant;
+    }
+}
+
+// Generate subkeys for CMAC
+void generate_cmac_subkeys(uint8_t *key, uint8_t *K1, uint8_t *K2, size_t key_size) {
+    uint8_t L[BLOCK_SIZE_128];  // Block of zeros (maximum size for 128-bit key)
+
+    // Apply block cipher to the block of zeros
+    // Here we use a mock function since the exact block cipher isn't specified
+    // For demonstration, we just assume K is set to the all zeros block
+    uint8_t K[BLOCK_SIZE_128] = {0};
+
+    // First subkey (K1)
+    left_shift_block(K, key_size);
+    xor_with_constant(K, key_size, (key_size == BLOCK_SIZE_64) ? 0x1B : 0x87);
+    memcpy(K1, K, key_size);
+
+    // Second subkey (K2)
+    left_shift_block(K1, key_size);
+    xor_with_constant(K1, key_size, (key_size == BLOCK_SIZE_64) ? 0x1B : 0x87);
+    memcpy(K2, K1, key_size);
+}
+
+int main() {
+    uint8_t key_64[BLOCK_SIZE_64] = {0};    // Example key for 64-bit block size
+    uint8_t key_128[BLOCK_SIZE_128] = {0};  // Example key for 128-bit block size
+    uint8_t K1_64[BLOCK_SIZE_64];
+    uint8_t K2_64[BLOCK_SIZE_64];
+    uint8_t K1_128[BLOCK_SIZE_128];
+    uint8_t K2_128[BLOCK_SIZE_128];
+
+    // Generate subkeys for 64-bit block size
+    generate_cmac_subkeys(key_64, K1_64, K2_64, BLOCK_SIZE_64);
+
+    // Generate subkeys for 128-bit block size
+    generate_cmac_subkeys(key_128, K1_128, K2_128, BLOCK_SIZE_128);
+
+    // Display the subkeys
+    printf("Subkeys for 64-bit block size:\n");
+    printf("K1: ");
+    for (int i = 0; i < BLOCK_SIZE_64; i++) {
+        printf("%02x ", K1_64[i]);
+    }
+    printf("\nK2: ");
+    for (int i = 0; i < BLOCK_SIZE_64; i++) {
+        printf("%02x ", K2_64[i]);
+    }
+    printf("\n\n");
+
+    printf("Subkeys for 128-bit block size:\n");
+    printf("K1: ");
+    for (int i = 0; i < BLOCK_SIZE_128; i++) {
+        printf("%02x ", K1_128[i]);
+    }
+    printf("\nK2: ");
+    for (int i = 0; i < BLOCK_SIZE_128; i++) {
+        printf("%02x ", K2_128[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+output:-
+Subkeys for 64-bit block size:
+K1: 00 00 00 00 00 00 00 00 
+K2: 00 00 00 00 00 00 00 00 
+
+Subkeys for 128-bit block size:
+K1: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+K2: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
