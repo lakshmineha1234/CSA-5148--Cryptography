@@ -1,0 +1,90 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+// Function to compute the greatest common divisor (GCD) using Euclidean algorithm
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// Extended Euclidean Algorithm to find the multiplicative inverse of e mod phi
+int extended_gcd(int a, int b, int *x, int *y) {
+    if (a == 0) {
+        *x = 0;
+        *y = 1;
+        return b;
+    }
+
+    int x1, y1;
+    int gcd = extended_gcd(b % a, a, &x1, &y1);
+
+    *x = y1 - (b / a) * x1;
+    *y = x1;
+
+    return gcd;
+}
+
+// Function to compute the multiplicative inverse
+int mod_inverse(int e, int phi) {
+    int x, y;
+    int gcd = extended_gcd(e, phi, &x, &y);
+    if (gcd != 1) {
+        printf("Multiplicative inverse doesn't exist\n");
+        exit(1);
+    } else {
+        // Make x positive
+        if (x < 0) x += phi;
+        return x;
+    }
+}
+
+// Function to generate a new public key e
+int generate_new_e(int phi) {
+    int e;
+    srand(time(NULL));
+    do {
+        e = rand() % (phi - 2) + 2; // e must be in range [2, phi-1]
+    } while (gcd(e, phi) != 1);
+    return e;
+}
+
+int main() {
+    int n = 3599;   // Given n = pq
+    int old_d = 271; // Example old private key (for demonstration)
+
+    int p, q;
+
+    // Step 1: Factorize n to find p and q
+    for (p = 2; p < n; p++) {
+        if (n % p == 0) {
+            q = n / p;
+            if (p * q == n) break;
+        }
+    }
+
+    if (p * q != n) {
+        printf("Failed to factorize n\n");
+        return 1;
+    }
+
+    printf("p = %d, q = %d\n", p, q);
+
+    // Step 2: Calculate phi(n)
+    int phi = (p - 1) * (q - 1);
+    printf("phi(n) = %d\n", phi);
+
+    // Step 3: Generate a new public key e
+    int new_e = generate_new_e(phi);
+    printf("New public key e = %d\n", new_e);
+
+    // Step 4: Find the new private key d
+    int new_d = mod_inverse(new_e, phi);
+    printf("New private key d = %d\n", new_d);
+
+    return 0;
+}
