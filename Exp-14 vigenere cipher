@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// Function to encrypt the plaintext using the one-time pad version of the Vigenère cipher
+void encrypt(const char *plaintext, const int *keyStream, char *ciphertext) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i++) {
+        if (plaintext[i] >= 'a' && plaintext[i] <= 'z') {
+            ciphertext[i] = ((plaintext[i] - 'a' + keyStream[i]) % 26) + 'a';
+        } else {
+            ciphertext[i] = plaintext[i];  // Handle spaces and other characters
+        }
+    }
+    ciphertext[len] = '\0';
+}
+
+// Function to decrypt the ciphertext using a given key stream
+void decrypt(const char *ciphertext, const int *keyStream, char *plaintext) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            plaintext[i] = ((ciphertext[i] - 'a' - keyStream[i] + 26) % 26) + 'a';
+        } else {
+            plaintext[i] = ciphertext[i];  // Handle spaces and other characters
+        }
+    }
+    plaintext[len] = '\0';
+}
+
+// Function to find a key stream to decrypt the given ciphertext to the given plaintext
+void findKey(const char *ciphertext, const char *desiredPlaintext, int *keyStream) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            keyStream[i] = (ciphertext[i] - desiredPlaintext[i] + 26) % 26;
+        } else {
+            keyStream[i] = 0;  // Handle spaces and other characters
+        }
+    }
+}
+
+int main() {
+    const char *plaintext = "send more money";
+    int keyStream[] = {9, 0, 1, 7, 23, 15, 21, 14, 11, 11, 2, 8, 9};
+    char ciphertext[100];
+    char decryptedText[100];
+    const char *desiredPlaintext = "cash not needed";
+    int newKeyStream[100];
+
+    // Encrypt the plaintext
+    encrypt(plaintext, keyStream, ciphertext);
+
+    // Print the ciphertext
+    printf("Plaintext: %s\n", plaintext);
+    printf("Key Stream: ");
+    for (int i = 0; i < strlen(plaintext); i++) {
+        printf("%d ", keyStream[i]);
+    }
+    printf("\nCiphertext: %s\n", ciphertext);
+
+    // Find a new key stream to decrypt the ciphertext to the desired plaintext
+    findKey(ciphertext, desiredPlaintext, newKeyStream);
+
+    // Print the new key stream
+    printf("Desired Plaintext: %s\n", desiredPlaintext);
+    printf("New Key Stream: ");
+    for (int i = 0; i < strlen(desiredPlaintext); i++) {
+        printf("%d ", newKeyStream[i]);
+    }
+    printf("\n");
+
+    // Decrypt the ciphertext using the new key stream
+    decrypt(ciphertext, newKeyStream, decryptedText);
+
+    // Print the decrypted text
+    printf("Decrypted Text: %s\n", decryptedText);
+
+    return 0;
+}
